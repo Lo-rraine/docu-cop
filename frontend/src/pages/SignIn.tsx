@@ -1,0 +1,69 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { signInWithEmail } from '@/lib/auth'
+import { useAuth } from '@/lib/auth-context'
+
+export default function SignIn() {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
+  const { refreshAuth } = useAuth()
+
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+
+    const { error: signInError } = await signInWithEmail(email)
+
+    if (signInError) {
+      setError(signInError.message)
+      setLoading(false)
+    } else {
+      await refreshAuth()
+      navigate('/')
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md p-8 bg-card rounded-lg border border-border">
+        <h1 className="text-3xl font-bold mb-2">Document Copilot</h1>
+        <p className="text-foreground/60 mb-8">Sign in with your email</p>
+
+        <form onSubmit={handleSignIn} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="w-full px-4 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              disabled={loading}
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || !email}
+            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+          >
+            {loading ? 'Signing in...' : 'Sign in'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
