@@ -22,15 +22,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const checkAuth = useCallback(async () => {
-    if (isAuthenticated()) {
-      const userData = await getCurrentUser()
-      setUser(userData)
-      setIsAuth(true)
-    } else {
+    try {
+      const authenticated = await isAuthenticated()
+      if (authenticated) {
+        const userData = await getCurrentUser()
+        setUser(userData)
+        setIsAuth(true)
+      } else {
+        setIsAuth(false)
+        setUser(null)
+      }
+    } catch (error) {
       setIsAuth(false)
       setUser(null)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   useEffect(() => {

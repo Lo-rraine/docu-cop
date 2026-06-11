@@ -33,6 +33,9 @@ def verify_password(password: str, password_hash: str) -> bool:
     Returns:
         True if the password matches the hash, False otherwise.
     """
+    if not password_hash:
+        return False
+
     try:
         hasher.verify(password_hash, password)
         return True

@@ -1,41 +1,72 @@
 import { env } from './env'
 
-const TOKEN_KEY = 'auth_token'
-
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
-}
-
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
-}
-
-export async function signInWithEmail(email: string) {
+export async function register(email: string, password: string) {
   try {
-    const response = await fetch(`${env.apiBaseUrl}/auth/token?email=${encodeURIComponent(email)}`, {
+    const response = await fetch(`${env.apiBaseUrl}/auth/register`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
     })
 
     if (!response.ok) {
-      return { data: null, error: { message: 'Failed to get token' } }
+      const error = await response.json()
+      return { data: null, error: { message: error.detail || 'Registration failed' } }
     }
 
-    const { access_token } = await response.json()
-    setToken(access_token)
-    return { data: { token: access_token }, error: null }
+    const data = await response.json()
+    return { data: { email: data.email }, error: null }
   } catch (error) {
-    return { data: null, error: { message: error instanceof Error ? error.message : 'Sign in failed' } }
+    return { data: null, error: { message: error instanceof Error ? error.message : 'Registration failed' } }
+  }
+}
+
+export async function login(email: string, password: string) {
+  try {
+    const response = await fetch(`${env.apiBaseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email, password }),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      return { data: null, error: { message: error.detail || 'Login failed' } }
+    }
+
+    const data = await response.json()
+    return { data: { email: data.email }, error: null }
+  } catch (error) {
+    return { data: null, error: { message: error instanceof Error ? error.message : 'Login failed' } }
+  }
+}
+
+export async function logout() {
+  try {
+    const response = await fetch(`${env.apiBaseUrl}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+
+    return response.ok
+  } catch (error) {
+    console.error('Logout failed:', error)
+    return false
   }
 }
 
 export function signOut(): void {
-  clearToken()
+  logout()
 }
 
-export function isAuthenticated(): boolean {
-  return !!getToken()
+export async function isAuthenticated(): Promise<boolean> {
+  try {
+    const response = await fetch(`${env.apiBaseUrl}/me`, {
+      credentials: 'include',
+    })
+    return response.ok
+  } catch (error) {
+    return false
+  }
 }

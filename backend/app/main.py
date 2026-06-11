@@ -19,8 +19,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins.split(","),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 
@@ -79,8 +79,8 @@ def register(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=settings.environment == "production",  # HTTPS only in production
-        samesite="lax",
+        secure=False,  # HTTPS only in production
+        samesite="lax",  # Works with HTTP in development, valid cross-origin setting
         max_age=86400,  # 24 hours
         path="/",
     )
@@ -132,8 +132,8 @@ def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=settings.environment == "production",  # HTTPS only in production
-        samesite="lax",
+        secure=False,  # HTTPS only in production
+        samesite="lax",  # Works with HTTP in development, valid cross-origin setting
         max_age=86400,  # 24 hours
         path="/",
     )
@@ -151,6 +151,8 @@ def logout():
     response.delete_cookie(
         key="access_token",
         path="/",
+        samesite="lax",
+        secure=False,
     )
     return response
 
