@@ -2,10 +2,10 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
-from .users import User
-from .documents import SourceDocument, DocumentChunk
-from .chat import ChatThread, ChatMessage
-from .citations import MessageCitation
+from app.database.models.users import User
+from app.database.models.documents import SourceDocument, DocumentChunk
+from app.database.models.chat import ChatThread, ChatMessage
+from app.database.models.citations import MessageCitation
 
 __all__ = [
     "Base",

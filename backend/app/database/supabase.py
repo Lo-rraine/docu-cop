@@ -1,6 +1,6 @@
 from supabase import Client, create_client
 
-from ..config import settings
+from app.config import settings
 
 
 def get_service_role_client() -> Client:

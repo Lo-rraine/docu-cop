@@ -15,10 +15,13 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    # Supabase
+    # Supabase (database only)
     supabase_url: str
     supabase_anon_key: str
     supabase_service_role_key: str
+
+    # JWT
+    jwt_secret: str
 
     # Database
     database_url: str
