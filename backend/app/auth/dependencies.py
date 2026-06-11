@@ -1,29 +1,60 @@
 import jwt
 import logging
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer
+from fastapi import Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
 from app.database.models import User
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 logger = logging.getLogger(__name__)
 
 
 async def get_current_user(
-    credentials=Depends(security),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
-    """Verify JWT token and return the authenticated user.
+    """Verify JWT token from cookie or Authorization header and return the authenticated user.
 
-    Extracts the JWT from Authorization: Bearer header, verifies its signature,
-    and returns or creates the corresponding user. Rejects expired/invalid tokens
-    with 401 Unauthorized.
+    Tries to extract JWT from:
+    1. HttpOnly cookie (primary) - set by /auth/register and /auth/login
+    2. Authorization: Bearer header (fallback) - for migration and API clients
+
+    Verifies the signature and returns the corresponding user.
+    Creates user on first login if they don't exist (legacy behavior).
+
+    Args:
+        request: FastAPI Request object (for cookie access)
+        credentials: Optional Authorization header (HTTPBearer)
+        db: Database session
+
+    Returns:
+        User object for the authenticated email
+
+    Raises:
+        401: If no valid token found in cookie or header, or token is invalid/expired
     """
-    token = credentials.credentials
+    token = None
 
+    # Primary: Try to get token from HttpOnly cookie
+    token = request.cookies.get("access_token")
+
+    # Fallback: Try to get token from Authorization header (migration support)
+    if not token and credentials:
+        token = credentials.credentials
+
+    # No token found anywhere
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Verify JWT signature and claims
     try:
         payload = jwt.decode(
             token,

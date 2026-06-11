@@ -34,6 +34,7 @@ class Settings(BaseSettings):
 
     # Server
     allowed_origins: str = "http://localhost:5173"
+    environment: str = "development"
 
 
 settings = Settings()

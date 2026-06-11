@@ -1,10 +1,15 @@
 import jwt
 from datetime import datetime, timedelta
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.auth import get_current_user
+from app.auth.password import hash_password, verify_password
+from app.auth.schemas import RegisterRequest, LoginRequest
+from app.database import get_db
 from app.database.models import User
 
 app = FastAPI(title="Document Copilot")
@@ -25,12 +30,139 @@ def health_check():
     return {"status": "ok"}
 
 
+@app.post("/auth/register")
+def register(
+    request: RegisterRequest,
+    db: Session = Depends(get_db),
+):
+    """Register a new user and set authentication cookie.
+
+    Validates email and password, ensures email uniqueness, hashes the password,
+    creates the user, generates a JWT, and sets it as an HttpOnly cookie.
+
+    Args:
+        request: RegisterRequest with email and password
+        db: Database session
+
+    Returns:
+        JSON response with success status. JWT set as HttpOnly cookie.
+
+    Raises:
+        400: Invalid email or password
+        409: Email already registered
+    """
+    # Check if email already exists
+    existing_user = db.query(User).filter(User.email == request.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+
+    # Hash password and create user
+    password_hash = hash_password(request.password)
+    user = User(email=request.email, password_hash=password_hash)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    # Generate JWT token
+    payload = {
+        "sub": user.email,
+        "exp": datetime.utcnow() + timedelta(hours=24),
+    }
+    access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+    # Set JWT as HttpOnly cookie
+    response = JSONResponse({"success": True, "email": user.email})
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=settings.environment == "production",  # HTTPS only in production
+        samesite="lax",
+        max_age=86400,  # 24 hours
+        path="/",
+    )
+    return response
+
+
+@app.post("/auth/login")
+def login(
+    request: LoginRequest,
+    db: Session = Depends(get_db),
+):
+    """Authenticate a user with email and password.
+
+    Looks up user by email, verifies the password hash, generates a JWT,
+    and sets it as an HttpOnly cookie.
+
+    Args:
+        request: LoginRequest with email and password
+        db: Database session
+
+    Returns:
+        JSON response with success status. JWT set as HttpOnly cookie.
+
+    Raises:
+        401: Invalid email/password combination or user not found
+    """
+    # Look up user by email
+    user = db.query(User).filter(User.email == request.email).first()
+
+    # Verify password (constant-time comparison)
+    # Return 401 for both "user not found" and "password mismatch" for security
+    if not user or not verify_password(request.password, user.password_hash or ""):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Generate JWT token
+    payload = {
+        "sub": user.email,
+        "exp": datetime.utcnow() + timedelta(hours=24),
+    }
+    access_token = jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+    # Set JWT as HttpOnly cookie
+    response = JSONResponse({"success": True, "email": user.email})
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=settings.environment == "production",  # HTTPS only in production
+        samesite="lax",
+        max_age=86400,  # 24 hours
+        path="/",
+    )
+    return response
+
+
+@app.post("/auth/logout")
+def logout():
+    """Clear authentication cookie and log out user.
+
+    Returns:
+        JSON response with success status. access_token cookie cleared.
+    """
+    response = JSONResponse({"success": True})
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+    )
+    return response
+
+
 @app.post("/auth/token")
 def get_token(email: str = "test@example.com"):
     """Generate a JWT token for the given email.
 
     Usage: POST /auth/token?email=user@example.com
     Returns: {"access_token": "eyJ...", "token_type": "bearer"}
+
+    DEPRECATED: Use /auth/register for production. This endpoint is for development only.
     """
     payload = {
         "sub": email,
