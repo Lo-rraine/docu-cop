@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from openai import OpenAI
 
 from app.config import settings
 from app.auth import get_current_user
@@ -12,11 +13,19 @@ from app.auth.schemas import RegisterRequest, LoginRequest
 from app.database import get_db
 from app.database.models import User
 from app.api.chat import router as chat_router
+from app.retrieval.retriever import DocumentRetriever
 
 app = FastAPI(title="Document Copilot")
 
 # Include routers
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
+
+
+@app.on_event("startup")
+def startup():
+    """Initialize OpenAI client and retriever on startup."""
+    app.state.openai_client = OpenAI(api_key=settings.openai_api_key)
+    app.state.retriever = DocumentRetriever(app.state.openai_client)
 
 # Configure CORS
 app.add_middleware(

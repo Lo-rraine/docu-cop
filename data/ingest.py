@@ -26,24 +26,23 @@ import tiktoken
 from docling.chunking import HybridChunker
 from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter
-from docling_core.types import DocChunk, DoclingDocument
+from docling_core.types import DoclingDocument
+from docling_core.transforms.chunker import DocChunk
 from openai import OpenAI, RateLimitError
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-# Fix Windows console encoding
-if sys.platform == "win32":
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+# Fix Windows console encoding using reconfigure instead of manual wrapping
+sys.stdout.reconfigure(encoding="utf-8")
 
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
 
-MAX_TOKENS_PER_CHUNK = 1024
+MAX_TOKENS_PER_CHUNK = 1000
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
-BATCH_SIZE_EMBEDDINGS = 500
+BATCH_SIZE_EMBEDDINGS = 5
 MIN_WAIT_BETWEEN_BATCHES = 0.5
 
 DATA_DIR = Path(__file__).resolve().parent
@@ -112,15 +111,22 @@ def load_markdown_files(base_dir: Path = MARKDOWN_DIR) -> list[tuple[str, Path]]
 # 3. Docling integration
 def markdown_to_docling(markdown_content: str, doc_name: str = "document") -> DoclingDocument:
     """Convert markdown string to DoclingDocument."""
-    converter = DocumentConverter()
-    result = converter.convert_string(
-        content=markdown_content,
-        format=InputFormat.MD,
-        name=doc_name,
-    )
-    if result.document is None:
-        raise ValueError(f"Failed to convert {doc_name} to DoclingDocument")
-    return result.document
+    import tempfile
+
+    # Write markdown to temp file, as convert() expects a file path
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
+        f.write(markdown_content)
+        temp_path = f.name
+
+    try:
+        converter = DocumentConverter()
+        result = converter.convert(temp_path)
+        if result.document is None:
+            raise ValueError(f"Failed to convert {doc_name} to DoclingDocument")
+        return result.document
+    finally:
+        import os
+        os.unlink(temp_path)
 
 
 # 4. Hashing utilities
@@ -185,6 +191,40 @@ def parse_document_metadata(filename: str, manifest: dict) -> dict:
             }
 
     raise ValueError(f"Could not find manifest entry for {filename}")
+
+
+def get_source_document_id(source_url: str, db_engine) -> str:
+    """
+    Look up source_documents.id UUID by source_url.
+
+    Uses ORDER BY created_at ASC LIMIT 1 to handle duplicate entries
+    (takes the earliest one).
+
+    Args:
+        source_url: URL of the source document
+        db_engine: SQLAlchemy engine
+
+    Returns:
+        source_documents.id as UUID string
+
+    Raises:
+        ValueError: If document not found in source_documents
+    """
+    with db_engine.connect() as conn:
+        result = conn.execute(
+            text("""
+                SELECT id FROM source_documents
+                WHERE url = :url
+                ORDER BY created_at ASC
+                LIMIT 1
+            """),
+            {"url": source_url},
+        ).fetchone()
+
+        if result is None:
+            raise ValueError(f"Source document not found for URL: {source_url}")
+
+        return str(result[0])
 
 
 # ============================================================================
@@ -363,7 +403,7 @@ def insert_chunks_to_db(
                 text("""
                     SELECT id FROM document_chunks
                     WHERE document_id = :doc_id
-                    AND chunk_metadata->>'chunk_index' = :idx::text
+                    AND chunk_metadata->>'chunk_index' = CAST(:idx AS TEXT)
                     LIMIT 1
                 """),
                 {"doc_id": document_id, "idx": str(chunk_index)},
@@ -446,8 +486,8 @@ def _insert_batch(session: Session, insert_values_list: list[dict]) -> None:
             text("""
                 INSERT INTO document_chunks
                 (id, document_id, text, embedding, chunk_metadata, search_vector, created_at)
-                VALUES (:id, :document_id, :text, :embedding::vector(1536),
-                        :chunk_metadata::jsonb, :search_vector, :created_at)
+                VALUES (:id, :document_id, :text, CAST(:embedding AS vector),
+                        CAST(:chunk_metadata AS jsonb), :search_vector, :created_at)
             """),
             values,
         )
