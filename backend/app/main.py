@@ -11,8 +11,12 @@ from app.auth.password import hash_password, verify_password
 from app.auth.schemas import RegisterRequest, LoginRequest
 from app.database import get_db
 from app.database.models import User
+from app.api.chat import router as chat_router
 
 app = FastAPI(title="Document Copilot")
+
+# Include routers
+app.include_router(chat_router, prefix="/chat", tags=["chat"])
 
 # Configure CORS
 app.add_middleware(
