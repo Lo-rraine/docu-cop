@@ -28,10 +28,12 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-md p-8 bg-card rounded-lg border border-border">
-        <h1 className="text-3xl font-bold mb-2">Document Copilot</h1>
-        <p className="text-foreground/60 mb-8">Sign in with your email</p>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">Document Copilot</h1>
+          <p className="text-sm text-foreground/60">Sign in to your account</p>
+        </div>
 
         <form onSubmit={handleSignIn} className="space-y-4">
           <div>
@@ -45,7 +47,7 @@ export default function SignIn() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               required
-              className="w-full px-4 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-4 py-3 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             />
           </div>
@@ -61,7 +63,7 @@ export default function SignIn() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-4 py-2 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full px-4 py-3 border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading}
             />
           </div>
@@ -75,7 +77,7 @@ export default function SignIn() {
           <button
             type="submit"
             disabled={loading || !email || !password}
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+            className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors mt-6"
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>

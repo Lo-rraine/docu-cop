@@ -16,12 +16,16 @@ export default function MessageList({ messages, isLoading, error }: MessageListP
   }, [messages])
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.length === 0 && !error && (
-        <div className="flex items-center justify-center h-full text-center">
-          <div>
-            <p className="text-lg font-semibold text-foreground mb-2">Start a conversation</p>
-            <p className="text-sm text-foreground/60">Ask questions about your documents</p>
+    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {messages.length === 0 && (
+        <div className="h-full flex items-center justify-center">
+          <div className="text-center max-w-2xl">
+            <h2 className="text-3xl font-semibold text-foreground mb-2">
+              Start a conversation
+            </h2>
+            <p className="text-foreground/60">
+              Choose an existing thread from the sidebar or ask a question about SEC filings.
+            </p>
           </div>
         </div>
       )}

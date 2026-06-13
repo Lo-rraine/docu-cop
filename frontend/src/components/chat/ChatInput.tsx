@@ -33,14 +33,14 @@ export default function ChatInput({ onSendMessage, isLoading, onCancel, disabled
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-border p-4 bg-background"
+      className="border-t border-border p-6 bg-background"
     >
-      <div className="flex gap-2 max-w-4xl mx-auto">
+      <div className="flex gap-3 max-w-4xl mx-auto items-end">
         <textarea
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about your documents..."
+          placeholder="Ask about SEC filings..."
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault()
@@ -54,7 +54,7 @@ export default function ChatInput({ onSendMessage, isLoading, onCancel, disabled
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-3 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors flex items-center justify-center"
             title="Cancel"
           >
             <Square className="w-5 h-5" />
@@ -63,7 +63,7 @@ export default function ChatInput({ onSendMessage, isLoading, onCancel, disabled
           <button
             type="submit"
             disabled={!input.trim() || disabled}
-            className="px-4 py-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             title="Send (Shift+Enter for new line)"
           >
             <Send className="w-5 h-5" />

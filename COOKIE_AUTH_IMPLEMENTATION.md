@@ -445,11 +445,30 @@ Once Phase 3 is verified and Phase 2 (SignIn update) is complete:
 - Remove Authorization header fallback from general `get_current_user()` if desired
 - Update architecture.md to mark cookie-based auth as standard for all endpoints
 
-## Next Steps
+## Completed (Phase 3 Summary)
 
-1. ✅ Backend implementation complete (Phase 3)
-2. ✅ Frontend utility functions updated (Phase 1-2)
-3. ⏳ Update `frontend/src/pages/SignIn.tsx` to use `register()` and `login()` (Phase 2)
-4. ⏳ Test streaming with AI SDK format and verify `useChat()` hook receives tokens correctly
-5. ⏳ Deploy and monitor cookie transmission and streaming state
-6. ⏳ (Optional, future) Remove `/auth/token` after Phase 2 is complete and verified in production
+1. ✅ Backend streaming implementation with cookie enforcement
+2. ✅ Frontend utility functions (auth with cookies)
+3. ✅ Update `frontend/src/pages/SignIn.tsx` to use `register()` and `login()` (Phase 2)
+4. ✅ Test streaming with AI SDK format — verified `0:"token"` format works end-to-end
+5. ✅ Frontend chat interface with real-time token streaming and message updates
+6. ✅ Thread management (create, list threads)
+7. ✅ Cookie enforcement verified (401 response without cookie)
+
+## What Works Now
+
+- ✅ User registration/login with HttpOnly cookies
+- ✅ Chat thread creation and listing
+- ✅ Streaming endpoint emits AI SDK-compatible format (`0:"token"`)
+- ✅ Frontend parses streaming events correctly
+- ✅ Real-time message updates in chat UI
+- ⚠️ **Currently showing stubbed response** — next phase is PydanticAI integration
+
+## Next Phase (Phase 4: LLM Integration)
+
+The streaming infrastructure is complete. Next steps:
+1. Replace `"This is a stubbed assistant reply."` with PydanticAI agent
+2. Integrate retrieval (pgvector + full-text search)
+3. Add citation handling via `d:` data events
+4. Implement grounding validation
+5. Deploy and monitor

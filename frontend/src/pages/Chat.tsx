@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '@/lib/auth-context'
 import { streamChat, ChatMessage } from '@/lib/chat'
 import MessageList from '@/components/chat/MessageList'
 import ChatInput from '@/components/chat/ChatInput'
@@ -8,7 +7,6 @@ import ChatInput from '@/components/chat/ChatInput'
 export default function Chat() {
   const { threadId } = useParams<{ threadId: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -69,24 +67,18 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="border-b border-border p-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-lg font-semibold">Document Copilot</h1>
-          <p className="text-sm text-foreground/60">Chat with your documents</p>
-        </div>
-        <span className="text-sm text-foreground/60">{user?.email}</span>
-      </header>
-
-      <main className="flex-1 overflow-hidden flex flex-col">
-        <MessageList messages={messages} isLoading={isLoading} error={error} />
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          isLoading={isLoading}
-          onCancel={handleCancel}
-          disabled={!threadId}
-        />
-      </main>
-    </div>
+    <main className="flex-1 flex flex-col overflow-hidden">
+      <MessageList
+        messages={messages}
+        isLoading={isLoading}
+        error={error}
+      />
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        isLoading={isLoading}
+        onCancel={handleCancel}
+        disabled={!threadId}
+      />
+    </main>
   )
 }

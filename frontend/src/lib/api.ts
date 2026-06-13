@@ -4,6 +4,7 @@ import { env } from './env'
 export interface User {
   id: string
   email: string
+  avatar?: string
 }
 
 export interface ChatThread {
