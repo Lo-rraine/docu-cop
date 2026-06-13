@@ -21,6 +21,11 @@ dependencies = [
     "uvicorn==0.48.0",
 ]
 
+[tool.pytest.ini_options]
+markers = [
+    "integration: integration tests requiring live Supabase + OpenAI",
+]
+
 [tool.uv]
 add-bounds = "exact"
 exclude-newer = "7 days"
