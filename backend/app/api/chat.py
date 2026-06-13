@@ -1,8 +1,9 @@
 import asyncio
+import json
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -39,7 +40,7 @@ class CreateThreadRequest(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    thread_id: UUID
+    id: UUID
     messages: list[dict]
 
 
@@ -52,6 +53,38 @@ def get_thread_for_user(
     if thread.user_id != user.id:
         raise HTTPException(status_code=403, detail="Access denied")
     return thread
+
+
+def get_current_user_from_cookies(request: Request, db: Session) -> User:
+    """Extract current user from HttpOnly cookie only (Phase 3: no Authorization header fallback).
+
+    This is the chat-specific auth handler that enforces cookie-based auth.
+    The general get_current_user still supports Authorization headers for backward compatibility.
+    """
+    token = request.cookies.get("access_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    import jwt
+    from app.config import settings
+
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    email = payload.get("sub")
+    if not email:
+        raise HTTPException(status_code=401, detail="Token missing subject claim")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(email=email)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    return user
 
 
 @router.get("/threads", response_model=list[ThreadOut])
@@ -98,11 +131,24 @@ async def get_messages(
 
 @router.post("/stream")
 async def stream_chat(
+    http_request: Request,
     request: ChatRequest,
-    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    thread = get_thread_for_user(request.thread_id, user, db)
+    """Stream assistant response in AI SDK-compatible format.
+
+    Authentication: HttpOnly cookie only (Phase 3 enforcement).
+    Streaming format: AI SDK-compatible Server-Sent Events.
+
+    Message format:
+    - Text tokens: 0:"<token>"
+    - Data parts (citations): d:{json}
+    - Errors: e:"<error>"
+
+    See: https://sdk.vercel.ai/docs/concepts/streaming
+    """
+    user = get_current_user_from_cookies(http_request, db)
+    thread = get_thread_for_user(request.id, user, db)
 
     user_message = None
     for msg in reversed(request.messages):
@@ -125,22 +171,27 @@ async def stream_chat(
     async def token_generator():
         stub = "This is a stubbed assistant reply."
         full_text = []
-        for word in stub.split():
-            chunk = word + " "
-            full_text.append(chunk)
-            yield f"data: {chunk}\n\n"
-            await asyncio.sleep(0.05)
 
-        full_response = "".join(full_text).strip()
-        db.add(
-            ChatMessage(
-                thread_id=thread.id,
-                role="assistant",
-                content=full_response,
+        try:
+            for word in stub.split():
+                chunk = word + " "
+                full_text.append(chunk)
+                yield f"0:{json.dumps(chunk)}\n"
+                await asyncio.sleep(0.05)
+
+            full_response = "".join(full_text).strip()
+
+            db.add(
+                ChatMessage(
+                    thread_id=thread.id,
+                    role="assistant",
+                    content=full_response,
+                )
             )
-        )
-        thread.updated_at = datetime.utcnow()
-        db.commit()
+            thread.updated_at = datetime.utcnow()
+            db.commit()
+        except Exception as e:
+            yield f"e:{json.dumps(str(e))}\n"
 
     from fastapi.responses import StreamingResponse
 

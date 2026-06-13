@@ -109,12 +109,13 @@ The chat module should be organized around these responsibilities:
 
 - `src/lib/env.ts` validates `VITE_API_BASE_URL`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY`.
 - `src/lib/supabase.ts` creates the browser Supabase client.
-- `src/lib/http.ts` wraps `fetch`, applies the backend base URL, injects the Supabase bearer token, handles timeouts, and converts failures into typed API errors.
+- `src/lib/auth.ts` provides `register()`, `login()`, `logout()`, `isAuthenticated()` — all cookie-based, no localStorage.
+- `src/lib/http.ts` wraps `fetch`, applies the backend base URL, enables `credentials: 'include'` for automatic cookie transmission, handles timeouts, and converts failures into typed API errors.
 - `src/lib/api.ts` exposes product-level calls such as loading threads, creating threads, and fetching message history.
-- `src/pages/chat/*` renders chat routes and delegates chat streaming to a focused chat component.
+- `src/pages/chat/*` renders chat routes and delegates chat streaming to the AI SDK.
 - `src/components/chat/*` renders messages, citations, source passages, empty states, and streaming status.
 
-The chat component should initialize with stored messages and then let the AI SDK manage in-flight UI state. The transport points to FastAPI, not to a frontend server route.
+The chat component should initialize with stored messages and then let the AI SDK manage in-flight UI state. The transport points to FastAPI and uses HttpOnly cookies; no manual Authorization header.
 
 Conceptual shape:
 
@@ -122,16 +123,13 @@ Conceptual shape:
 const { messages, sendMessage, status, error } = useChat({
   id: threadId,
   messages: initialMessages,
-  transport: new DefaultChatTransport({
-    api: `${apiBaseUrl}/chat/stream`,
-    headers: async () => ({
-      Authorization: `Bearer ${await getAccessToken()}`,
-    }),
-  }),
+  api: `${apiBaseUrl}/chat/stream`,
+  // Note: no manual headers needed; credentials: 'include' is set in http.ts
 });
+// AI SDK automatically parses 0:"token", d:{json}, e:"error" from server
 ```
 
-The exact API surface should be verified during implementation against the installed AI SDK version. The architectural rule is stable: the browser streams to FastAPI with the user's Supabase token, and FastAPI owns the assistant run.
+The architectural rule is stable: the browser streams to FastAPI with HttpOnly cookies, FastAPI verifies and owns the assistant run, and the AI SDK client updates UI state as tokens arrive.
 
 ## Backend LLM Layer
 
@@ -210,43 +208,45 @@ This keeps the database responsible for efficient ranked retrieval and keeps the
 
 ## Supabase and FastAPI Communication
 
-Supabase Auth is the identity source. FastAPI must treat the browser's Supabase JWT as the request credential.
+Supabase Auth is the identity source. FastAPI must treat the browser's JWT as the request credential. Modern implementations use HttpOnly cookies for streaming and API calls.
 
 Frontend rules:
 
 - Use the anon key only in the browser.
 - Read the current session through the shared Supabase client.
-- Send the access token to FastAPI through the shared API client.
-- Never pass tokens through component props.
+- Send authentication via HttpOnly cookies with `credentials: 'include'` for all requests.
+- Never manually pass tokens through Authorization headers in production.
 - Never expose the service-role key to the frontend.
 
 Backend rules:
 
-- Verify `Authorization: Bearer <token>` at the FastAPI boundary.
+- Streaming endpoints (`/chat/stream`) verify `Cookie: access_token=<jwt>` only.
+- General API endpoints can accept both cookies and `Authorization: Bearer <token>` for backward compatibility during migration.
 - Reject unauthenticated requests before retrieval or LLM work.
-- Derive `user_id` and email from the verified Supabase user.
+- Derive `user_id` and email from the verified JWT user claim.
 - Use user-scoped database operations wherever possible.
 - Use the service-role key only on the backend for privileged writes that cannot be safely performed with the anon key.
 - Always attach persisted chat records to the authenticated `user_id`.
 
-The backend can verify the JWT by calling Supabase Auth's user endpoint or by validating the project's JWT signing keys. For the first implementation, calling Supabase Auth is simpler and avoids local JWT validation mistakes. If request volume grows, local JWT verification can be added behind the same `AuthService` interface.
+The backend verifies JWTs by validating the project's JWT signing keys locally. This is faster and more reliable than calling Supabase Auth on every request.
 
 Recommended backend units:
 
-- `app/auth/dependencies.py` validates bearer tokens and exposes `get_current_user`.
+- `app/auth/dependencies.py` validates cookies/bearer tokens and exposes `get_current_user` for backward-compatible endpoints.
+- `app/api/chat.py` enforces cookie-only authentication for streaming via `get_current_user_from_cookies()`.
 - `app/database/supabase.py` creates user-scoped and admin Supabase clients.
 - `app/database/chats.py` stores and reads chat threads, messages, and citation records.
 - `app/database/documents.py` stores and reads source documents, chunks, embeddings, and full-text search data.
 
 ## Streaming Contract
 
-The frontend should receive incremental assistant output, not wait for a full answer. FastAPI should expose a streaming endpoint that emits AI SDK-compatible message parts.
+The frontend should receive incremental assistant output, not wait for a full answer. FastAPI should expose a streaming endpoint that emits AI SDK-compatible message parts in Server-Sent Events format.
 
-Recommended endpoint:
+### Endpoint Definition
 
 ```text
 POST /chat/stream
-Authorization: Bearer <supabase_access_token>
+Cookie: access_token=<jwt>
 Content-Type: application/json
 ```
 
@@ -254,19 +254,48 @@ Request body:
 
 ```json
 {
-  "threadId": "uuid",
-  "messages": []
+  "id": "uuid",
+  "messages": [
+    {"role": "user", "content": "..."},
+    {"role": "assistant", "content": "..."}
+  ]
 }
 ```
 
 The `messages` payload should use the AI SDK UI message format at the frontend boundary. FastAPI can translate that wire format into internal Pydantic models before invoking the agent.
 
-Streaming responsibilities:
+### Authentication
+
+- **Primary:** HttpOnly cookie (`access_token`)
+- Enforced at the streaming boundary — no Authorization header fallback
+- Browser sends cookies automatically with `credentials: 'include'`
+- Aligns with AI SDK client expectations
+
+### Message Format
+
+Stream is Server-Sent Events with AI SDK-compatible codes:
+
+```text
+0:"text token here"
+0:" another "
+0:"token"
+d:{"type":"citation","data":{...}}
+e:"error message if needed"
+```
+
+- `0:` — Text token (message code 0). Frontend parses as tool message or assistant text.
+- `d:` — Data part (tool calls, citations, structured metadata). JSON-encoded.
+- `e:` — Error event. Stops streaming.
+
+This format is consumed by the Vercel AI SDK's `useChat()` hook on the frontend.
+
+### Streaming Responsibilities
 
 - Send text deltas as the answer is generated.
-- Send citation/source metadata as structured parts once available.
+- Send citation/source metadata as structured parts (data code) once available.
 - Send clear error events for authentication failures, missing threads, retrieval failures, and grounding failures.
-- Persist only after the assistant run completes successfully, unless a separate partial-message model is deliberately introduced later.
+- Persist user message immediately; persist assistant message only after streaming completes successfully.
+- Use AI SDK message codes so frontend parsing is standardized.
 
 ## Data Model
 
