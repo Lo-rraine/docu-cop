@@ -28,23 +28,24 @@ def semantic_search(
     Returns:
         Sorted list of ChunkRow, ordered by similarity descending.
     """
+    embedding_str = "[" + ",".join(str(v) for v in query_embedding) + "]"
+
     query = text(
-        """
+        f"""
         SELECT
             id::text AS chunk_id,
             document_id::text AS document_id,
             text,
             chunk_metadata,
-            (1 - (embedding <=> :embedding::vector)) AS score
+            (1 - (embedding <=> '{embedding_str}'::vector)) AS score
         FROM document_chunks
         WHERE embedding IS NOT NULL
-        ORDER BY embedding <=> :embedding::vector
+        ORDER BY embedding <=> '{embedding_str}'::vector
         LIMIT :top_k
         """
     )
 
-    embedding_str = str(query_embedding)
-    rows = db.execute(query, {"embedding": embedding_str, "top_k": top_k})
+    rows = db.execute(query, {"top_k": top_k})
 
     return [
         ChunkRow(
@@ -80,10 +81,10 @@ def fulltext_search(
             document_id::text AS document_id,
             text,
             chunk_metadata,
-            ts_rank(search_vector, plainto_tsquery('english', :query)) AS score
+            ts_rank(to_tsvector('english'::regconfig, search_vector), plainto_tsquery('english', :query)) AS score
         FROM document_chunks
-        WHERE search_vector @@ plainto_tsquery('english', :query)
-        ORDER BY ts_rank(search_vector, plainto_tsquery('english', :query)) DESC
+        WHERE to_tsvector('english'::regconfig, search_vector) @@ plainto_tsquery('english', :query)
+        ORDER BY ts_rank(to_tsvector('english'::regconfig, search_vector), plainto_tsquery('english', :query)) DESC
         LIMIT :top_k
         """
     )

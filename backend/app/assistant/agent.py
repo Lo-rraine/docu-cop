@@ -3,6 +3,7 @@
 from pathlib import Path
 from uuid import UUID
 import asyncio
+import logging
 from typing import Optional
 
 from pydantic_ai import Agent, RunContext
@@ -14,10 +15,17 @@ from app.assistant.deps import DocumentAgentDeps, TurnRegistry
 from app.assistant.outputs import GroundedAnswer
 from app.retrieval.retriever import RetrievedPassage
 from app.database.documents import fetch_chunk_by_id, fetch_neighboring_chunks
+from app.utils.tokens import count_tokens, log_token_breakdown
+
+log = logging.getLogger(__name__)
 
 # Load instructions from markdown file
 _INSTRUCTIONS_PATH = Path(__file__).parent / "instructions.md"
 INSTRUCTIONS = _INSTRUCTIONS_PATH.read_text(encoding="utf-8")
+
+# Log instruction token count at module load time
+_instruction_tokens = count_tokens(INSTRUCTIONS)
+log.info(f"[AGENT] System instructions: {_instruction_tokens} tokens ({len(INSTRUCTIONS)} characters)")
 
 
 def get_document_agent() -> Agent[DocumentAgentDeps, GroundedAnswer]:
@@ -77,8 +85,12 @@ def get_document_agent() -> Agent[DocumentAgentDeps, GroundedAnswer]:
                 f"Text: {p.text}\n"
             )
 
+        formatted_result = "\n".join(result)
+        result_tokens = count_tokens(formatted_result)
+        log.info(f"[SEARCH_FILINGS] Returning {len(passages)} passages ({result_tokens} tokens)")
+
         ctx.deps.emit_status(f"search_filings: found {len(passages)} passages")
-        return "\n".join(result)
+        return formatted_result
 
     @agent.tool
     def read_chunk(ctx: RunContext[DocumentAgentDeps], chunk_id: str) -> str:
@@ -207,13 +219,19 @@ async def run_document_agent(
     query: str, deps: DocumentAgentDeps
 ) -> tuple[GroundedAnswer, dict]:
     """Execute the agent (async wrapper)."""
+    log.info(f"[AGENT] Starting agent for query: {query[:50]}")
     deps.emit_status("agent:start")
 
     def run_sync():
-        return get_agent().run_sync(query, deps=deps)
+        log.info(f"[AGENT] Getting agent instance")
+        agent = get_agent()
+        log.info(f"[AGENT] Running agent synchronously")
+        return agent.run_sync(query, deps=deps)
 
     # Run in thread to avoid blocking
+    log.info(f"[AGENT] About to run agent in thread")
     result = await asyncio.to_thread(run_sync)
+    log.info(f"[AGENT] Agent completed")
 
     deps.emit_status("agent:done")
     return result.output, {"tokens": result.usage.output_tokens if result.usage else 0}

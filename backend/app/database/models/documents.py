@@ -31,7 +31,7 @@ class DocumentChunk(Base):
     text = Column(Text, nullable=False)
     embedding = Column(Vector(1536), nullable=False)
     chunk_metadata = Column(JSON, nullable=True)
-    search_vector = Column(None, nullable=False)
+    search_vector = Column(Text, nullable=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
     document = relationship("SourceDocument", back_populates="chunks")

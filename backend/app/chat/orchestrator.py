@@ -1,6 +1,7 @@
 """Orchestration of a single chat turn: retrieval → agent → validation → streaming → persistence."""
 
 import asyncio
+import logging
 from datetime import datetime
 from typing import AsyncGenerator
 
@@ -16,7 +17,10 @@ from app.assistant.outputs import GroundedAnswer
 from app.grounding.validator import GroundingValidator
 from app.retrieval.retriever import DocumentRetriever
 from app.chat.streaming import text_event, data_event, error_event, citation_data_event
+from app.utils.tokens import count_tokens
 from uuid import UUID
+
+log = logging.getLogger(__name__)
 
 
 MAX_RETRIES = 2
@@ -47,6 +51,11 @@ async def run_turn(
         yield error_event("Empty message")
         return
 
+    # Log input tokens
+    user_msg_tokens = count_tokens(user_message)
+    log.info(f"[TURN] Starting turn for query: {user_message[:50]}")
+    log.info(f"[TURN] User message: {user_msg_tokens} tokens")
+
     status_queue: asyncio.Queue[str] = asyncio.Queue()
 
     def on_status(msg: str):
@@ -59,6 +68,7 @@ async def run_turn(
 
     # Retry loop for validation
     for attempt in range(MAX_RETRIES + 1):
+        log.info(f"[TURN] Validation attempt {attempt + 1}/{MAX_RETRIES + 1}")
         registry = TurnRegistry()
         deps = DocumentAgentDeps(
             retriever=retriever,
@@ -70,9 +80,12 @@ async def run_turn(
         )
 
         # Run agent in thread (sync blocking call)
+        log.info(f"[TURN] About to run agent")
         try:
             grounded, metadata = await run_document_agent(user_message, deps)
+            log.info(f"[TURN] Agent completed successfully")
         except Exception as e:
+            log.error(f"[TURN] Agent error: {e}", exc_info=True)
             yield error_event(f"Agent error: {e}")
             return
 
@@ -95,8 +108,11 @@ async def run_turn(
     while not status_queue.empty():
         yield data_event({"type": "status", "message": status_queue.get_nowait()})
 
-    # Stream answer text as word tokens
-    full_text = grounded.answer
+    # If insufficient evidence, stream a clear message
+    if grounded.insufficient_evidence:
+        full_text = grounded.answer if grounded.answer.strip() else "Unable to find relevant information in the available filings to answer this question."
+    else:
+        full_text = grounded.answer
     for word in full_text.split():
         yield text_event(word + " ")
         await asyncio.sleep(0.01)

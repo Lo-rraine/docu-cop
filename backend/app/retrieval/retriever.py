@@ -1,5 +1,6 @@
 """Hybrid retrieval orchestrator: semantic + full-text + RRF fusion."""
 
+import logging
 from dataclasses import dataclass
 from typing import Optional
 
@@ -10,6 +11,9 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.retrieval.fusion import reciprocal_rank_fusion
 from app.retrieval.queries import fulltext_search, semantic_search
+from app.utils.tokens import count_tokens
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -33,8 +37,8 @@ class DocumentRetriever:
     def __init__(
         self,
         openai_client: OpenAI,
-        semantic_k: int = 20,
-        fulltext_k: int = 20,
+        semantic_k: int = 5,
+        fulltext_k: int = 5,
         embedding_model: str = settings.openai_embedding_model,
     ):
         self.openai_client = openai_client
@@ -46,8 +50,8 @@ class DocumentRetriever:
         self,
         query: str,
         db: Session,
-        top_k: int = 10,
-        neighbor_window: int = 1,
+        top_k: int = 3,
+        neighbor_window: int = 0,
     ) -> list[RetrievedPassage]:
         """Retrieve relevant passages using hybrid search.
 
@@ -83,6 +87,13 @@ class DocumentRetriever:
 
         sorted_passages = sorted(passages, key=lambda p: p.rrf_score, reverse=True)
 
+        # Log token usage
+        total_tokens = sum(count_tokens(p.text) for p in sorted_passages)
+        log.info(f"[RETRIEVAL] Retrieved {len(sorted_passages)} passages ({total_tokens} tokens total)")
+        for i, p in enumerate(sorted_passages[:3], 1):
+            tokens = count_tokens(p.text)
+            log.info(f"  [{i}] {p.ticker} {p.filing_type} {p.filing_year}: {tokens} tokens ({len(p.text)} chars)")
+
         return sorted_passages
 
     def _embed_query(self, query: str) -> list[float]:
@@ -106,16 +117,16 @@ class DocumentRetriever:
         query = text(
             f"""
             SELECT
-                id::text,
-                document_id::text,
-                text,
-                chunk_metadata,
+                document_chunks.id::text,
+                document_chunks.document_id::text,
+                document_chunks.text,
+                document_chunks.chunk_metadata,
                 source_documents.ticker,
                 source_documents.filing_type,
                 source_documents.filing_year
             FROM document_chunks
             LEFT JOIN source_documents ON document_chunks.document_id = source_documents.id
-            WHERE id::text IN ({','.join([f"'{cid}'" for cid in chunk_ids])})
+            WHERE document_chunks.id::text IN ({','.join([f"'{cid}'" for cid in chunk_ids])})
             """
         )
 

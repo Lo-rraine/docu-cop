@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from datetime import datetime
 from uuid import UUID
 
@@ -12,6 +13,8 @@ from app.database import get_db
 from app.database.models.chat import ChatMessage, ChatThread
 from app.database.models.users import User
 from app.chat.orchestrator import run_turn
+
+log = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -170,10 +173,14 @@ async def stream_chat(
     db.commit()
 
     async def token_generator():
+        log.info(f"[STREAM] Starting token generator")
         retriever = http_request.app.state.retriever
         openai_client = http_request.app.state.openai_client
+        log.info(f"[STREAM] Got retriever and openai_client")
         async for event in run_turn(user_message, thread, user, db, retriever, openai_client):
+            log.info(f"[STREAM] Yielding event: {event[:50] if len(event) > 50 else event}")
             yield event
+        log.info(f"[STREAM] Token generator finished")
 
     from fastapi.responses import StreamingResponse
 

@@ -11,16 +11,16 @@ def fetch_chunk_by_id(db: Session, chunk_id: str) -> RetrievedPassage | None:
     query = text(
         """
         SELECT
-            id::text AS chunk_id,
-            document_id::text AS document_id,
-            text,
-            chunk_metadata,
+            document_chunks.id::text AS chunk_id,
+            document_chunks.document_id::text AS document_id,
+            document_chunks.text,
+            document_chunks.chunk_metadata,
             source_documents.ticker,
             source_documents.filing_type,
             source_documents.filing_year
         FROM document_chunks
         LEFT JOIN source_documents ON document_chunks.document_id = source_documents.id
-        WHERE id::text = :chunk_id
+        WHERE document_chunks.id::text = :chunk_id
         """
     )
 
@@ -50,18 +50,18 @@ def fetch_neighboring_chunks(
     query = text(
         """
         SELECT
-            id::text AS chunk_id,
-            document_id::text AS document_id,
-            text,
-            chunk_metadata,
+            document_chunks.id::text AS chunk_id,
+            document_chunks.document_id::text AS document_id,
+            document_chunks.text,
+            document_chunks.chunk_metadata,
             source_documents.ticker,
             source_documents.filing_type,
             source_documents.filing_year
         FROM document_chunks
         LEFT JOIN source_documents ON document_chunks.document_id = source_documents.id
-        WHERE document_id::text = :document_id
-          AND (chunk_metadata->>'chunk_index')::int BETWEEN :min_idx AND :max_idx
-        ORDER BY (chunk_metadata->>'chunk_index')::int
+        WHERE document_chunks.document_id::text = :document_id
+          AND (document_chunks.chunk_metadata->>'chunk_index')::int BETWEEN :min_idx AND :max_idx
+        ORDER BY (document_chunks.chunk_metadata->>'chunk_index')::int
         """
     )
 

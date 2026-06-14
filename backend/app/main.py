@@ -1,3 +1,4 @@
+import os
 import jwt
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -7,6 +8,9 @@ from sqlalchemy.orm import Session
 from openai import OpenAI
 
 from app.config import settings
+
+# Ensure OpenAI credentials are in os.environ for pydantic-ai
+os.environ.setdefault("OPENAI_API_KEY", settings.openai_api_key)
 from app.auth import get_current_user
 from app.auth.password import hash_password, verify_password
 from app.auth.schemas import RegisterRequest, LoginRequest
