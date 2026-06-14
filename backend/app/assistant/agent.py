@@ -46,7 +46,7 @@ def get_document_agent() -> Agent[DocumentAgentDeps, GroundedAnswer]:
         ticker: Optional[str] = None,
         filing_type: Optional[str] = None,
         year: Optional[int] = None,
-        top_k: int = 10,
+        top_k: int = 3,
     ) -> str:
         """Search SEC filings for relevant passages using hybrid search.
 
