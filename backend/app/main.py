@@ -20,6 +20,7 @@ from app.api.chat import router as chat_router
 from app.api.documents import router as documents_router
 from app.retrieval.retriever import DocumentRetriever
 
+
 app = FastAPI(title="Document Copilot")
 
 # Include routers
@@ -34,12 +35,23 @@ def startup():
     app.state.retriever = DocumentRetriever(app.state.openai_client)
 
 # Configure CORS
+print("\n" + "="*60)
+print("ALLOWED_ORIGINS RAW:", repr(settings.allowed_origins))
+origins = [origin.strip() for origin in settings.allowed_origins.split(",")]
+print("ALLOWED_ORIGINS PARSED:", origins)
+print("="*60 + "\n")
+
+# TEMPORARY TEST: Hardcode origins to isolate the issue
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins.split(","),
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 

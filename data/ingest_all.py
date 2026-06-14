@@ -143,11 +143,8 @@ def ingest_document(
                 result["reason"] = f"Already ingested (hash={document_hash[:8]}...)"
                 return result
 
-        # 3. Convert to DoclingDocument
-        doc = ingest.markdown_to_docling(markdown_content, doc_name="document")
-
-        # 5. Chunk
-        chunks = ingest.chunk_document(doc, max_tokens=ingest.MAX_TOKENS_PER_CHUNK)
+        # 3. Chunk markdown directly (financial-document-aware)
+        chunks = ingest.chunk_financial_markdown(markdown_content, max_tokens=ingest.MAX_TOKENS_PER_CHUNK)
         result["total_chunks"] = len(chunks)
 
         if len(chunks) == 0:

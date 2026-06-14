@@ -26,37 +26,63 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
     setLoading(true)
     setError(null)
 
-    getChunkContext(citation.chunk_id)
-      .then((data) => {
+    const loadContext = async () => {
+      try {
+        const data = await getChunkContext(citation.chunk_id)
         setContext(data)
+        setError(null)
+      } catch (err) {
+        console.error('Error loading chunk context:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load passage context')
+        setContext(null)
+      } finally {
         setLoading(false)
-      })
-      .catch((err) => {
-        setError(err?.message || 'Failed to load passage context')
-        setLoading(false)
-      })
+      }
+    }
+
+    loadContext()
   }, [citation])
 
   const open = citation !== null
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setContext(null)
+      setError(null)
+      setLoading(false)
+      onClose()
+    }
+  }
+
   return (
-    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className='sm:max-w-2xl'>
-        {loading ? (
+        {loading && (
           <div className='flex items-center justify-center h-full'>
             <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-foreground' />
           </div>
-        ) : error ? (
-          <div className='space-y-4'>
-            <p className='text-sm text-destructive'>{error}</p>
-            {citation && (
-              <div className='space-y-2'>
-                <p className='text-sm font-medium'>Excerpt:</p>
-                <p className='text-sm text-muted-foreground'>{citation.excerpt}</p>
-              </div>
-            )}
+        )}
+
+        {error && (
+          <div className='space-y-4 p-4'>
+            <SheetHeader>
+              <SheetTitle className='flex items-center gap-2'>
+                <Badge variant='outline'>[{citation?.citation_index}]</Badge>
+                <span>
+                  {citation?.ticker} {citation?.filing_type} {citation?.filing_year}
+                </span>
+              </SheetTitle>
+            </SheetHeader>
+            <div className='rounded-lg border border-destructive/20 bg-destructive/5 p-4'>
+              <p className='text-sm text-destructive font-medium mb-2'>⚠️ Error loading full context</p>
+              <p className='text-sm text-destructive/80 mb-3'>{error}</p>
+              <p className='text-xs text-foreground/60'>Excerpt from citation:</p>
+              <p className='text-sm text-muted-foreground mt-2 rounded p-2 bg-muted/30'>{citation?.excerpt}</p>
+            </div>
           </div>
-        ) : context ? (
+        )}
+
+        {context && (
           <div className='space-y-6'>
             <SheetHeader>
               <SheetTitle className='flex items-center gap-2'>
@@ -110,7 +136,7 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
               </div>
             )}
           </div>
-        ) : null}
+        )}
       </SheetContent>
     </Sheet>
   )

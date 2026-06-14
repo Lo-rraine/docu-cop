@@ -1,5 +1,6 @@
 import { fetchWithAuth } from './http'
 import { env } from './env'
+import { ChatMessage } from './chat'
 
 export interface User {
   id: string
@@ -12,6 +13,26 @@ export interface ChatThread {
   title: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ThreadMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: string
+  citations?: Array<{
+    citation_index: number
+    chunk_id: string
+    excerpt: string
+    ticker: string
+    filing_type: string
+    filing_year: number
+    heading: string | null
+  }>
+}
+
+export interface ThreadDetail extends ChatThread {
+  messages: ThreadMessage[]
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -61,6 +82,24 @@ export async function createThread(title?: string): Promise<ChatThread | null> {
     return response.json()
   } catch (error) {
     console.error('Error creating thread:', error)
+    return null
+  }
+}
+
+export async function getThread(threadId: string): Promise<ThreadDetail | null> {
+  try {
+    const response = await fetchWithAuth(`${env.apiBaseUrl}/chat/threads/${threadId}`)
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null
+      }
+      throw new Error('Failed to fetch thread')
+    }
+
+    return response.json()
+  } catch (error) {
+    console.error('Error fetching thread:', error)
     return null
   }
 }

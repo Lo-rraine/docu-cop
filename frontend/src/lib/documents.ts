@@ -17,5 +17,10 @@ export interface ChunkContext {
 }
 
 export async function getChunkContext(chunkId: string): Promise<ChunkContext> {
-  return fetchWithAuth(`/documents/chunks/${chunkId}/context`)
+  const { env } = await import('./env')
+  const response = await fetchWithAuth(`${env.apiBaseUrl}/documents/chunks/${chunkId}/context`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch chunk context: ${response.status}`)
+  }
+  return response.json()
 }

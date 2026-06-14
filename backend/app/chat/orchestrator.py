@@ -26,6 +26,25 @@ log = logging.getLogger(__name__)
 MAX_RETRIES = 2
 
 
+def generate_thread_title(response: str) -> str:
+    """Generate a thread title from the first assistant response.
+
+    Prefers markdown headings, falls back to first line, or default.
+    """
+    lines = [line.strip() for line in response.splitlines() if line.strip()]
+
+    # Prefer first markdown heading
+    for line in lines:
+        if line.startswith("#"):
+            return line.lstrip("#").strip()[:255]
+
+    # Otherwise first non-empty line
+    if lines:
+        return lines[0][:255]
+
+    return "New Chat"
+
+
 async def run_turn(
     user_message: str,
     thread: ChatThread,
@@ -55,6 +74,11 @@ async def run_turn(
     user_msg_tokens = count_tokens(user_message)
     log.info(f"[TURN] Starting turn for query: {user_message[:50]}")
     log.info(f"[TURN] User message: {user_msg_tokens} tokens")
+
+    # Load instructions size for reference
+    from app.assistant.agent import INSTRUCTIONS
+    instr_tokens = count_tokens(INSTRUCTIONS)
+    log.info(f"[TURN] System instructions: {instr_tokens} tokens")
 
     status_queue: asyncio.Queue[str] = asyncio.Queue()
 
@@ -138,6 +162,11 @@ async def run_turn(
                     section=passage.heading if passage else None,
                 )
             )
+
+        # Auto-title thread from first assistant response
+        if not thread.title or thread.title == "New Chat":
+            thread.title = generate_thread_title(full_text)
+            log.info(f"[TURN] Auto-titled thread: {thread.title}")
 
         thread.updated_at = datetime.utcnow()
         db.commit()

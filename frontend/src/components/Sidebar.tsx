@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react'
-import { Plus, LogOut } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Plus, LogOut, RotateCcw } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth-context'
 import { listThreads, createThread, ChatThread } from '@/lib/api'
 import { signOut } from '@/lib/auth'
+
+// Global event emitter for thread updates
+const threadUpdateEmitter = new EventTarget()
+export const ThreadUpdateEvent = new Event('threadUpdate')
+
+export function notifyThreadUpdate() {
+  threadUpdateEmitter.dispatchEvent(ThreadUpdateEvent)
+}
 
 export default function Sidebar() {
   const { user } = useAuth()
@@ -13,13 +21,20 @@ export default function Sidebar() {
 
   useEffect(() => {
     loadThreads()
+
+    // Listen for thread updates
+    threadUpdateEmitter.addEventListener('threadUpdate', loadThreads)
+    return () => {
+      threadUpdateEmitter.removeEventListener('threadUpdate', loadThreads)
+    }
   }, [])
 
-  async function loadThreads() {
+  const loadThreads = useCallback(async () => {
+    setLoading(true)
     const threads = await listThreads()
     setThreads(threads)
     setLoading(false)
-  }
+  }, [])
 
   async function handleNewChat() {
     const thread = await createThread('New Chat')

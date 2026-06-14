@@ -15,6 +15,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   citations?: CitationPayload[]
+  created_at?: string
 }
 
 export interface StreamEvent {

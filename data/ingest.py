@@ -141,6 +141,76 @@ def compute_chunk_hash(text: str) -> str:
 
 
 # 5. Chunking service
+class SimpleChunk:
+    """Simple chunk wrapper for consistency with DocChunk interface."""
+    def __init__(self, text: str):
+        self.text = text
+        self.meta = type('Meta', (), {'headings': [], 'doc_items': []})()
+
+
+def chunk_financial_markdown(markdown_content: str, max_tokens: int = MAX_TOKENS_PER_CHUNK) -> list[SimpleChunk]:
+    """
+    Chunk markdown for financial documents, preserving table integrity.
+
+    Strategy:
+    1. Split on table boundaries (blank lines between tables)
+    2. Keep complete financial tables together
+    3. Don't break mid-table
+    4. Group related tables when possible
+    """
+    chunks = []
+    current_chunk = []
+    current_tokens = 0
+    tokenizer = get_tokenizer()
+
+    lines = markdown_content.split('\n')
+    in_table = False
+    consecutive_blanks = 0
+
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        line_tokens = len(tokenizer.encode(line))
+
+        # Track table state (tables are markdown rows with |)
+        if '|' in line:
+            in_table = True
+            consecutive_blanks = 0
+        elif stripped == '':
+            consecutive_blanks += 1
+        else:
+            consecutive_blanks = 0
+            in_table = False
+
+        # Decision point: should we flush the current chunk?
+        would_exceed = current_tokens + line_tokens > max_tokens
+
+        if would_exceed and current_chunk:
+            # Flush conditions:
+            # 1. We're between tables (blank line + not a table row)
+            # 2. Or we have plenty of content already (min 200 tokens)
+            between_tables = consecutive_blanks > 0 and '|' not in line
+            has_enough_content = current_tokens > 200
+
+            if between_tables or has_enough_content:
+                chunk_text = '\n'.join(current_chunk).strip()
+                if chunk_text:
+                    chunks.append(SimpleChunk(chunk_text))
+                current_chunk = []
+                current_tokens = 0
+
+        # Add line
+        current_chunk.append(line)
+        current_tokens += line_tokens
+
+    # Flush remaining
+    if current_chunk:
+        chunk_text = '\n'.join(current_chunk).strip()
+        if chunk_text:
+            chunks.append(SimpleChunk(chunk_text))
+
+    return chunks
+
+
 def chunk_document(doc: DoclingDocument, max_tokens: int = MAX_TOKENS_PER_CHUNK) -> list[DocChunk]:
     """Chunk document using HybridChunker."""
     chunker = HybridChunker(
@@ -255,7 +325,7 @@ def batch_generate_embeddings(
     min_wait: float = MIN_WAIT_BETWEEN_BATCHES,
 ) -> list[list[float]]:
     """
-    Generate embeddings for texts in batches.
+    Generate embeddings for texts in batches with aggressive rate limit handling.
 
     Args:
         texts: List of texts to embed
@@ -275,7 +345,7 @@ def batch_generate_embeddings(
         batch_texts = texts[start_idx:end_idx]
 
         retry_count = 0
-        max_retries = 3
+        max_retries = 5
 
         while retry_count < max_retries:
             try:
@@ -289,18 +359,20 @@ def batch_generate_embeddings(
                 for data in response.data:
                     embeddings[start_idx + data.index] = data.embedding
 
-                # Rate limiting
-                if end_idx < len(texts):
-                    time.sleep(min_wait)
+                # Rate limiting - always wait between batches
+                time.sleep(min_wait + 0.2)
 
                 break  # Success
 
-            except RateLimitError:
+            except RateLimitError as e:
                 retry_count += 1
+                # Parse wait time from error if available, otherwise exponential backoff
                 wait_time = min_wait * (2**retry_count)
                 if retry_count < max_retries:
+                    print(f"⚠ Rate limited on batch {start_idx}-{end_idx-1}, retrying in {wait_time:.1f}s...")
                     time.sleep(wait_time)
                 else:
+                    print(f"✗ Max retries exceeded for batch {start_idx}-{end_idx-1}")
                     raise
 
             except Exception as e:

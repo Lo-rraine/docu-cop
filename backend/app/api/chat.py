@@ -29,11 +29,33 @@ class ThreadOut(BaseModel):
         from_attributes = True
 
 
+class CitationOut(BaseModel):
+    citation_index: int
+    chunk_id: UUID
+    excerpt: str
+    ticker: str
+    filing_type: str
+    filing_year: int
+    heading: str | None = None
+
+
 class MessageOut(BaseModel):
     id: UUID
     role: str
     content: str
     created_at: datetime
+    citations: list[CitationOut] = []
+
+    class Config:
+        from_attributes = True
+
+
+class ThreadDetailOut(BaseModel):
+    id: UUID
+    title: str | None
+    created_at: datetime
+    updated_at: datetime
+    messages: list[MessageOut]
 
     class Config:
         from_attributes = True
@@ -115,6 +137,77 @@ async def create_thread(
     db.commit()
     db.refresh(thread)
     return thread
+
+
+@router.get("/threads/{thread_id}")
+async def get_thread_detail(
+    thread_id: UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get thread with all messages and their citations."""
+    from app.database.models.citations import MessageCitation
+    from app.database.models.documents import DocumentChunk
+
+    thread = get_thread_for_user(thread_id, user, db)
+
+    messages = (
+        db.query(ChatMessage)
+        .filter_by(thread_id=thread.id)
+        .order_by(ChatMessage.created_at)
+        .all()
+    )
+
+    # Build messages with citations
+    messages_data = []
+    for msg in messages:
+        # Fetch citations for this message
+        citations_rows = (
+            db.query(MessageCitation)
+            .filter_by(message_id=msg.id)
+            .order_by(MessageCitation.id)
+            .all()
+        )
+
+        citations = []
+        for idx, citation in enumerate(citations_rows, 1):
+            # Load chunk with its document
+            chunk = db.query(DocumentChunk).filter_by(id=citation.chunk_id).first()
+
+            if chunk and chunk.document:
+                # Get first 125 chars as excerpt
+                excerpt = chunk.text[:125] if chunk.text else ""
+
+                # Extract heading from metadata
+                heading = None
+                if chunk.chunk_metadata and isinstance(chunk.chunk_metadata, dict):
+                    heading = chunk.chunk_metadata.get("heading")
+
+                citations.append({
+                    "citation_index": idx,
+                    "chunk_id": str(citation.chunk_id),
+                    "excerpt": excerpt,
+                    "ticker": chunk.document.ticker,
+                    "filing_type": chunk.document.filing_type,
+                    "filing_year": chunk.document.filing_year,
+                    "heading": heading,
+                })
+
+        messages_data.append({
+            "id": str(msg.id),
+            "role": msg.role,
+            "content": msg.content,
+            "created_at": msg.created_at.isoformat(),
+            "citations": citations,
+        })
+
+    return {
+        "id": str(thread.id),
+        "title": thread.title,
+        "created_at": thread.created_at.isoformat(),
+        "updated_at": thread.updated_at.isoformat(),
+        "messages": messages_data,
+    }
 
 
 @router.get("/threads/{thread_id}/messages", response_model=list[MessageOut])
