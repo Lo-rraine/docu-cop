@@ -19,7 +19,7 @@ export default function MessageBubble({
   if (message.role === 'assistant') {
     return (
       <div className='flex justify-start'>
-        <div className='max-w-2xl px-4 py-3 rounded-2xl bg-muted text-foreground'>
+        <div className='max-w-2xl px-5 py-4 rounded-2xl bg-muted/60 text-foreground shadow-sm border border-border/30'>
           <AssistantMessage
             message={message}
             isStreaming={isStreaming ?? false}
@@ -33,8 +33,8 @@ export default function MessageBubble({
 
   return (
     <div className='flex justify-end'>
-      <div className='max-w-2xl px-4 py-3 rounded-2xl rounded-br-none bg-primary text-primary-foreground'>
-        <p className='text-sm leading-relaxed whitespace-pre-wrap break-words'>
+      <div className='max-w-2xl px-5 py-4 rounded-2xl rounded-br-none bg-primary text-primary-foreground shadow-md border border-primary/50'>
+        <p className='text-sm leading-relaxed whitespace-pre-wrap break-words font-normal'>
           {message.content}
         </p>
       </div>

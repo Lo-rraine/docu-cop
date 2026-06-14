@@ -11,8 +11,8 @@ function HomeLayout() {
       <Sidebar />
       <main className="flex-1 flex items-center justify-center px-8">
         <div className="text-center max-w-2xl">
-          <h1 className="text-4xl font-bold mb-4">Start a conversation</h1>
-          <p className="text-foreground/60">
+          <h1 className="text-4xl font-semibold tracking-tight mb-4 text-foreground">Start a conversation</h1>
+          <p className="text-foreground/60 text-base leading-relaxed">
             Choose an existing thread from the sidebar or create a new chat to ask questions about SEC filings.
           </p>
         </div>

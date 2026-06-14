@@ -31,7 +31,7 @@ export function AssistantMessage({
     <div className='space-y-3'>
       <div className='space-y-2'>
         <div className='flex items-start gap-3'>
-          <div className='flex-1'>
+          <div className='flex-1 text-sm leading-relaxed'>
             {message.content ? (
               <AssistantMarkdown
                 content={message.content}
@@ -49,14 +49,14 @@ export function AssistantMessage({
             size='icon'
             onClick={handleCopy}
             disabled={isStreaming || !message.content}
-            className='mt-1 flex-shrink-0'
+            className='mt-0.5 flex-shrink-0 hover:bg-foreground/10 transition-colors duration-150'
           >
-            {copied ? <Check className='h-4 w-4' /> : <Copy className='h-4 w-4' />}
+            {copied ? <Check className='h-4 w-4 text-green-600 dark:text-green-400' /> : <Copy className='h-4 w-4' />}
           </Button>
         </div>
 
         {!isStreaming && citations.length === 0 && message.content && (
-          <p className='text-sm text-muted-foreground italic'>
+          <p className='text-xs text-foreground/50 italic pt-1'>
             No filing evidence was found to support this answer.
           </p>
         )}

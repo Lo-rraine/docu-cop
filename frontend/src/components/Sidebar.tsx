@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Plus, LogOut } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/auth-context'
 import { listThreads, createThread, ChatThread } from '@/lib/api'
 import { signOut } from '@/lib/auth'
 
 export default function Sidebar() {
   const { user } = useAuth()
+  const location = useLocation()
   const [threads, setThreads] = useState<ChatThread[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -32,40 +34,50 @@ export default function Sidebar() {
     window.location.href = '/signin'
   }
 
+  const isActive = (threadId: string) => location.pathname === `/chat/${threadId}`
+
   return (
-    <div className="w-64 border-r border-border bg-background flex flex-col">
+    <div className="w-64 border-r border-border/50 bg-background flex flex-col shadow-sm">
       {/* Header */}
-      <div className="p-4 border-b border-border">
-        <h1 className="text-lg font-semibold">Document Copilot</h1>
-        <p className="text-xs text-foreground/50 mt-1">Chat with SEC filings</p>
+      <div className="px-6 py-5 border-b border-border/50">
+        <h1 className="text-base font-semibold tracking-tight text-foreground">Document Copilot</h1>
+        <p className="text-xs text-foreground/50 mt-1.5 font-medium">Chat with SEC filings</p>
       </div>
 
       {/* New Chat Button */}
       <button
         onClick={handleNewChat}
-        className="m-4 flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+        className="mx-4 mt-4 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 active:bg-primary/85 transition-colors duration-150 text-sm font-medium shadow-sm hover:shadow-md"
       >
         <Plus className="w-4 h-4" />
         New chat
       </button>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto px-4 py-2">
-        <p className="text-xs font-medium text-foreground/50 uppercase tracking-wide mb-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <p className="text-xs font-semibold text-foreground/50 uppercase tracking-widest mb-4 block">
           Conversations
         </p>
 
         {loading ? (
-          <p className="text-xs text-foreground/40">Loading...</p>
-        ) : threads.length === 0 ? (
-          <p className="text-xs text-foreground/40">No conversations yet</p>
-        ) : (
           <div className="space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-8 bg-muted/40 rounded-lg" />
+            ))}
+          </div>
+        ) : threads.length === 0 ? (
+          <p className="text-xs text-foreground/40 text-center py-8">No conversations yet</p>
+        ) : (
+          <div className="space-y-1.5">
             {threads.map((thread) => (
               <a
                 key={thread.id}
                 href={`/chat/${thread.id}`}
-                className="block px-3 py-2 rounded-lg text-sm text-foreground/70 hover:bg-muted/50 transition-colors truncate"
+                className={`block px-3 py-2.5 rounded-lg text-sm transition-all duration-150 truncate ${
+                  isActive(thread.id)
+                    ? 'bg-primary/10 text-foreground font-medium shadow-sm'
+                    : 'text-foreground/70 hover:bg-muted/60 hover:text-foreground'
+                }`}
                 title={thread.title || 'Untitled'}
               >
                 {thread.title || 'Untitled'}
@@ -76,11 +88,11 @@ export default function Sidebar() {
       </div>
 
       {/* User Section */}
-      <div className="p-4 border-t border-border space-y-2">
-        <p className="text-xs text-foreground/50 truncate">{user?.email}</p>
+      <div className="px-4 py-4 border-t border-border/50 space-y-3">
+        <p className="text-xs text-foreground/50 font-medium truncate">{user?.email}</p>
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-foreground/70 hover:bg-muted/50 rounded-lg transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-foreground/70 hover:text-foreground hover:bg-muted/60 rounded-lg transition-colors duration-150"
         >
           <LogOut className="w-4 h-4" />
           Sign out

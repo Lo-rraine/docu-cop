@@ -72,8 +72,8 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
 
             {context.prev && (
               <div className='space-y-2'>
-                <p className='text-xs font-semibold text-muted-foreground uppercase'>Previous Context</p>
-                <div className='rounded-lg border border-muted p-3 bg-muted/50'>
+                <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Previous Context</p>
+                <div className='rounded-lg border border-border/50 p-4 bg-muted/30 text-sm'>
                   <AssistantMarkdown
                     content={context.prev.text}
                     citations={[]}
@@ -85,8 +85,8 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
             )}
 
             <div className='space-y-2'>
-              <p className='text-xs font-semibold text-muted-foreground uppercase'>Cited Passage</p>
-              <div className='rounded-lg border border-primary/50 bg-primary/5 p-3'>
+              <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Cited Passage</p>
+              <div className='rounded-lg border border-primary/40 bg-primary/8 p-4 text-sm shadow-sm'>
                 <AssistantMarkdown
                   content={context.chunk.text}
                   citations={[]}
@@ -98,8 +98,8 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
 
             {context.next && (
               <div className='space-y-2'>
-                <p className='text-xs font-semibold text-muted-foreground uppercase'>Next Context</p>
-                <div className='rounded-lg border border-muted p-3 bg-muted/50'>
+                <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Next Context</p>
+                <div className='rounded-lg border border-border/50 p-4 bg-muted/30 text-sm'>
                   <AssistantMarkdown
                     content={context.next.text}
                     citations={[]}

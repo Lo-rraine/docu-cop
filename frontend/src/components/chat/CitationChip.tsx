@@ -13,11 +13,11 @@ export function CitationChip({ citation, selected, onSelect }: CitationChipProps
   return (
     <button
       onClick={() => onSelect(citation)}
-      className={`transition-colors rounded-full px-3 py-1 text-sm ${
+      className={`transition-all duration-150 rounded-full px-3 py-1.5 text-xs font-medium border cursor-pointer ${
         selected
-          ? 'border-foreground bg-foreground/5 text-foreground'
-          : 'border-border bg-background text-muted-foreground hover:text-foreground'
-      } border`}
+          ? 'border-primary bg-primary/15 text-primary shadow-sm'
+          : 'border-border/60 bg-muted/40 text-foreground/70 hover:bg-muted/70 hover:text-foreground'
+      }`}
     >
       <span className='font-semibold'>
         [{citation.citation_index}]

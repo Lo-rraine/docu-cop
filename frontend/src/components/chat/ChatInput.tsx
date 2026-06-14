@@ -33,7 +33,7 @@ export default function ChatInput({ onSendMessage, isLoading, onCancel, disabled
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-border p-6 bg-background"
+      className="border-t border-border/50 px-6 py-4 bg-background shadow-lg shadow-black/5"
     >
       <div className="flex gap-3 max-w-4xl mx-auto items-end">
         <textarea
@@ -48,13 +48,13 @@ export default function ChatInput({ onSendMessage, isLoading, onCancel, disabled
             }
           }}
           disabled={isLoading || disabled}
-          className="flex-1 resize-none rounded-lg border border-input bg-background px-4 py-3 text-sm placeholder:text-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed max-h-48"
+          className="flex-1 resize-none rounded-xl border border-input/80 bg-background px-4 py-3 text-sm placeholder:text-foreground/45 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed max-h-48 shadow-sm"
         />
         {isLoading ? (
           <button
             type="button"
             onClick={onCancel}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors flex items-center justify-center"
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80 transition-colors duration-150 flex items-center justify-center shadow-md hover:shadow-lg"
             title="Cancel"
           >
             <Square className="w-5 h-5" />
@@ -63,7 +63,7 @@ export default function ChatInput({ onSendMessage, isLoading, onCancel, disabled
           <button
             type="submit"
             disabled={!input.trim() || disabled}
-            className="flex-shrink-0 w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md hover:shadow-lg"
             title="Send (Shift+Enter for new line)"
           >
             <Send className="w-5 h-5" />

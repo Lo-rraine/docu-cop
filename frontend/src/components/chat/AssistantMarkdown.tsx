@@ -49,42 +49,43 @@ export function AssistantMarkdown({
           }
           // Regular link
           return (
-            <a href={href} className='text-primary hover:underline'>
+            <a href={href} className='text-primary hover:underline transition-colors duration-150 font-medium'>
               {children}
             </a>
           )
         },
-        p: ({ children }) => <p className='whitespace-pre-wrap'>{children}</p>,
+        p: ({ children }) => <p className='whitespace-pre-wrap mb-1'>{children}</p>,
         code: ({ inline, children }) => {
           if (inline) {
-            return <code className='bg-muted px-1 rounded text-sm'>{children}</code>
+            return <code className='bg-muted/70 px-2 py-0.5 rounded text-xs font-mono text-foreground/90'>{children}</code>
           }
           return (
-            <pre className='bg-muted p-3 rounded overflow-x-auto'>
-              <code>{children}</code>
+            <pre className='bg-muted/60 p-4 rounded-lg overflow-x-auto my-3 border border-border/30'>
+              <code className='text-xs font-mono leading-relaxed text-foreground'>{children}</code>
             </pre>
           )
         },
-        ul: ({ children }) => <ul className='list-disc ml-4'>{children}</ul>,
-        ol: ({ children }) => <ol className='list-decimal ml-4'>{children}</ol>,
-        h1: ({ children }) => <h1 className='text-xl font-bold my-2'>{children}</h1>,
-        h2: ({ children }) => <h2 className='text-lg font-bold my-2'>{children}</h2>,
-        h3: ({ children }) => <h3 className='text-base font-bold my-1'>{children}</h3>,
+        ul: ({ children }) => <ul className='list-disc ml-5 my-2 space-y-1'>{children}</ul>,
+        ol: ({ children }) => <ol className='list-decimal ml-5 my-2 space-y-1'>{children}</ol>,
+        li: ({ children }) => <li className='text-sm'>{children}</li>,
+        h1: ({ children }) => <h1 className='text-lg font-semibold my-3 mt-4 text-foreground'>{children}</h1>,
+        h2: ({ children }) => <h2 className='text-base font-semibold my-2.5 mt-3.5 text-foreground'>{children}</h2>,
+        h3: ({ children }) => <h3 className='text-sm font-semibold my-2 text-foreground'>{children}</h3>,
         blockquote: ({ children }) => (
-          <blockquote className='border-l-4 border-muted-foreground pl-4 italic my-2'>
+          <blockquote className='border-l-4 border-primary/50 pl-4 italic my-3 text-foreground/80 bg-muted/30 py-2 rounded-r'>
             {children}
           </blockquote>
         ),
         table: ({ children }) => (
-          <div className='overflow-x-auto my-2'>
-            <table className='border-collapse border border-muted'>{children}</table>
+          <div className='overflow-x-auto my-3'>
+            <table className='border-collapse border border-border/50 text-sm'>{children}</table>
           </div>
         ),
         td: ({ children }) => (
-          <td className='border border-muted p-2'>{children}</td>
+          <td className='border border-border/50 p-2 text-foreground/90'>{children}</td>
         ),
         th: ({ children }) => (
-          <th className='border border-muted p-2 bg-muted font-bold'>{children}</th>
+          <th className='border border-border/50 p-2 bg-muted/60 font-semibold text-foreground'>{children}</th>
         ),
       }}
     >
