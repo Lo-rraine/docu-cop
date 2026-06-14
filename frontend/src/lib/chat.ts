@@ -1,9 +1,20 @@
 import { env } from './env'
 
+export interface CitationPayload {
+  citation_index: number
+  chunk_id: string
+  excerpt: string
+  ticker: string
+  filing_type: string
+  filing_year: number
+  heading: string | null
+}
+
 export interface ChatMessage {
   id?: string
   role: 'user' | 'assistant'
   content: string
+  citations?: CitationPayload[]
 }
 
 export interface StreamEvent {

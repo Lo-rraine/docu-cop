@@ -11,6 +11,7 @@ from app.auth.dependencies import get_current_user
 from app.database import get_db
 from app.database.models.chat import ChatMessage, ChatThread
 from app.database.models.users import User
+from app.chat.orchestrator import run_turn
 
 router = APIRouter()
 
@@ -169,29 +170,10 @@ async def stream_chat(
     db.commit()
 
     async def token_generator():
-        stub = "This is a stubbed assistant reply."
-        full_text = []
-
-        try:
-            for word in stub.split():
-                chunk = word + " "
-                full_text.append(chunk)
-                yield f"0:{json.dumps(chunk)}\n"
-                await asyncio.sleep(0.05)
-
-            full_response = "".join(full_text).strip()
-
-            db.add(
-                ChatMessage(
-                    thread_id=thread.id,
-                    role="assistant",
-                    content=full_response,
-                )
-            )
-            thread.updated_at = datetime.utcnow()
-            db.commit()
-        except Exception as e:
-            yield f"e:{json.dumps(str(e))}\n"
+        retriever = http_request.app.state.retriever
+        openai_client = http_request.app.state.openai_client
+        async for event in run_turn(user_message, thread, user, db, retriever, openai_client):
+            yield event
 
     from fastapi.responses import StreamingResponse
 

@@ -13,12 +13,14 @@ from app.auth.schemas import RegisterRequest, LoginRequest
 from app.database import get_db
 from app.database.models import User
 from app.api.chat import router as chat_router
+from app.api.documents import router as documents_router
 from app.retrieval.retriever import DocumentRetriever
 
 app = FastAPI(title="Document Copilot")
 
 # Include routers
 app.include_router(chat_router, prefix="/chat", tags=["chat"])
+app.include_router(documents_router, prefix="/documents", tags=["documents"])
 
 
 @app.on_event("startup")

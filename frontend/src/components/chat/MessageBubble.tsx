@@ -1,25 +1,42 @@
+import type { ChatMessage, CitationPayload } from '@/lib/chat'
+import { AssistantMessage } from './AssistantMessage'
+
 interface MessageBubbleProps {
-  role: 'user' | 'assistant'
-  content: string
+  message: ChatMessage
   isStreaming?: boolean
+  selectedCitationIndex: number | null
+  onSelectCitation: (c: CitationPayload) => void
 }
 
-export default function MessageBubble({ role, content, isStreaming }: MessageBubbleProps) {
-  const isUser = role === 'user'
+export default function MessageBubble({
+  message,
+  isStreaming,
+  selectedCitationIndex,
+  onSelectCitation,
+}: MessageBubbleProps) {
+  const isUser = message.role === 'user'
+
+  if (message.role === 'assistant') {
+    return (
+      <div className='flex justify-start'>
+        <div className='max-w-2xl px-4 py-3 rounded-2xl bg-muted text-foreground'>
+          <AssistantMessage
+            message={message}
+            isStreaming={isStreaming ?? false}
+            selectedCitationIndex={selectedCitationIndex}
+            onSelectCitation={onSelectCitation}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-2xl px-4 py-3 rounded-2xl ${
-          isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-foreground'
-        }`}
-      >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{content}</p>
-        {isStreaming && (
-          <span className="inline-block w-2 h-4 ml-2 bg-current animate-pulse" />
-        )}
+    <div className='flex justify-end'>
+      <div className='max-w-2xl px-4 py-3 rounded-2xl rounded-br-none bg-primary text-primary-foreground'>
+        <p className='text-sm leading-relaxed whitespace-pre-wrap break-words'>
+          {message.content}
+        </p>
       </div>
     </div>
   )
