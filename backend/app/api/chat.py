@@ -13,6 +13,8 @@ from app.database import get_db
 from app.database.models.chat import ChatMessage, ChatThread
 from app.database.models.users import User
 from app.chat.orchestrator import run_turn
+from app.database.models.citations import MessageCitation
+from app.database.models.documents import DocumentChunk
 
 log = logging.getLogger(__name__)
 
@@ -146,9 +148,6 @@ async def get_thread_detail(
     db: Session = Depends(get_db),
 ):
     """Get thread with all messages and their citations."""
-    from app.database.models.citations import MessageCitation
-    from app.database.models.documents import DocumentChunk
-
     thread = get_thread_for_user(thread_id, user, db)
 
     messages = (

@@ -34,20 +34,11 @@ def startup():
     app.state.openai_client = OpenAI(api_key=settings.openai_api_key)
     app.state.retriever = DocumentRetriever(app.state.openai_client)
 
-# Configure CORS
-print("\n" + "="*60)
-print("ALLOWED_ORIGINS RAW:", repr(settings.allowed_origins))
+# Configure CORS from environment
 origins = [origin.strip() for origin in settings.allowed_origins.split(",")]
-print("ALLOWED_ORIGINS PARSED:", origins)
-print("="*60 + "\n")
-
-# TEMPORARY TEST: Hardcode origins to isolate the issue
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,7 +59,7 @@ def register(
 ):
     """Register a new user and set authentication cookie.
 
-    Validates email and password, ensures email uniqueness, hashes the password,
+    Validates email and password, ensures email uniqueness, hashes the password using Argon2,
     creates the user, generates a JWT, and sets it as an HttpOnly cookie.
 
     Args:
