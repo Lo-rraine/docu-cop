@@ -1,0 +1,32 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "services": {
+    "backend": {
+      "builder": "dockerfile",
+      "buildCommand": "",
+      "startCommand": "sh -c 'uv run alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000'",
+      "dockerfile": "backend/Dockerfile",
+      "root": "backend",
+      "watch": ["backend/**"],
+      "port": 8000,
+      "healthCheck": {
+        "http": {
+          "path": "/health"
+        }
+      }
+    },
+    "frontend": {
+      "builder": "dockerfile",
+      "buildCommand": "",
+      "dockerfile": "frontend/Dockerfile",
+      "root": "frontend",
+      "watch": ["frontend/**"],
+      "port": 3000,
+      "healthCheck": {
+        "http": {
+          "path": "/"
+        }
+      }
+    }
+  }
+}
