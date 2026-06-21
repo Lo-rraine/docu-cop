@@ -56,7 +56,7 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent className='sm:max-w-2xl'>
+      <SheetContent className='flex flex-col h-full p-0'>
         {loading && (
           <div className='flex items-center justify-center h-full'>
             <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-foreground' />
@@ -64,7 +64,7 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
         )}
 
         {error && (
-          <div className='space-y-4 p-4'>
+          <>
             <SheetHeader>
               <SheetTitle className='flex items-center gap-2'>
                 <Badge variant='outline'>[{citation?.citation_index}]</Badge>
@@ -73,17 +73,19 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
                 </span>
               </SheetTitle>
             </SheetHeader>
-            <div className='rounded-lg border border-destructive/20 bg-destructive/5 p-4'>
-              <p className='text-sm text-destructive font-medium mb-2'>⚠️ Error loading full context</p>
-              <p className='text-sm text-destructive/80 mb-3'>{error}</p>
-              <p className='text-xs text-foreground/60'>Excerpt from citation:</p>
-              <p className='text-sm text-muted-foreground mt-2 rounded p-2 bg-muted/30'>{citation?.excerpt}</p>
+            <div className='flex-1 overflow-y-auto px-6 pb-6'>
+              <div className='rounded-lg border border-destructive/20 bg-destructive/5 p-4'>
+                <p className='text-sm text-destructive font-medium mb-2'>⚠️ Error loading full context</p>
+                <p className='text-sm text-destructive/80 mb-3'>{error}</p>
+                <p className='text-xs text-foreground/60'>Excerpt from citation:</p>
+                <p className='text-sm text-muted-foreground mt-2 rounded p-2 bg-muted/30'>{citation?.excerpt}</p>
+              </div>
             </div>
-          </div>
+          </>
         )}
 
         {context && (
-          <div className='space-y-6'>
+          <>
             <SheetHeader>
               <SheetTitle className='flex items-center gap-2'>
                 <Badge variant='outline'>[{citation!.citation_index}]</Badge>
@@ -96,46 +98,50 @@ export function SourcePassageSheet({ citation, onClose }: SourcePassageSheetProp
               )}
             </SheetHeader>
 
-            {context.prev && (
-              <div className='space-y-2'>
-                <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Previous Context</p>
-                <div className='rounded-lg border border-border/50 p-4 bg-muted/30 text-sm'>
-                  <AssistantMarkdown
-                    content={context.prev.text}
-                    citations={[]}
-                    selectedIndex={null}
-                    onSelect={() => {}}
-                  />
-                </div>
-              </div>
-            )}
+            <div className='flex-1 overflow-y-auto px-6'>
+              <div className='space-y-6 pb-6'>
+                {context.prev && (
+                  <div className='space-y-2'>
+                    <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Previous Context</p>
+                    <div className='rounded-lg border border-border/50 p-4 bg-muted/30'>
+                      <AssistantMarkdown
+                        content={context.prev.text}
+                        citations={[]}
+                        selectedIndex={null}
+                        onSelect={() => {}}
+                      />
+                    </div>
+                  </div>
+                )}
 
-            <div className='space-y-2'>
-              <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Cited Passage</p>
-              <div className='rounded-lg border border-primary/40 bg-primary/8 p-4 text-sm shadow-sm'>
-                <AssistantMarkdown
-                  content={context.chunk.text}
-                  citations={[]}
-                  selectedIndex={null}
-                  onSelect={() => {}}
-                />
+                <div className='space-y-2'>
+                  <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Cited Passage</p>
+                  <div className='rounded-lg border border-primary/40 bg-primary/8 p-4 shadow-sm overflow-x-auto'>
+                    <AssistantMarkdown
+                      content={context.chunk.text}
+                      citations={[]}
+                      selectedIndex={null}
+                      onSelect={() => {}}
+                    />
+                  </div>
+                </div>
+
+                {context.next && (
+                  <div className='space-y-2'>
+                    <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Next Context</p>
+                    <div className='rounded-lg border border-border/50 p-4 bg-muted/30'>
+                      <AssistantMarkdown
+                        content={context.next.text}
+                        citations={[]}
+                        selectedIndex={null}
+                        onSelect={() => {}}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-
-            {context.next && (
-              <div className='space-y-2'>
-                <p className='text-xs font-semibold text-foreground/60 uppercase tracking-wider'>Next Context</p>
-                <div className='rounded-lg border border-border/50 p-4 bg-muted/30 text-sm'>
-                  <AssistantMarkdown
-                    content={context.next.text}
-                    citations={[]}
-                    selectedIndex={null}
-                    onSelect={() => {}}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+          </>
         )}
       </SheetContent>
     </Sheet>

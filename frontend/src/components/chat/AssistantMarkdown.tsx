@@ -77,15 +77,18 @@ export function AssistantMarkdown({
           </blockquote>
         ),
         table: ({ children }) => (
-          <div className='overflow-x-auto my-3'>
-            <table className='border-collapse border border-border/50 text-sm'>{children}</table>
+          <div className='overflow-x-auto my-3 rounded-lg border border-border/30'>
+            <table className='border-collapse w-full text-xs'>{children}</table>
           </div>
         ),
+        tbody: ({ children }) => <tbody className='divide-y divide-border/30'>{children}</tbody>,
+        thead: ({ children }) => <thead className='bg-muted/50 border-b border-border/30'>{children}</thead>,
+        tr: ({ children }) => <tr className='divide-x divide-border/30'>{children}</tr>,
         td: ({ children }) => (
-          <td className='border border-border/50 p-2 text-foreground/90'>{children}</td>
+          <td className='p-3 text-foreground/80 align-top'>{children}</td>
         ),
         th: ({ children }) => (
-          <th className='border border-border/50 p-2 bg-muted/60 font-semibold text-foreground'>{children}</th>
+          <th className='p-3 font-semibold text-foreground text-left align-top'>{children}</th>
         ),
       }}
     >
