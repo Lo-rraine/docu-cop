@@ -281,6 +281,17 @@
         "primary_document": "goog-20211231.htm",
         "source_url": "https://www.sec.gov/Archives/edgar/data/1652044/000165204422000019/goog-20211231.htm",
         "local_path": "2021\\googl_10-k_2022-02-02_0001652044-22-000019.htm"
+      },
+      {
+        "ticker": "4S4",
+        "cik": "0001045865",
+        "form": "10-K",
+        "filing_date": "2026-06-20",
+        "report_date": "2026-06-20",
+        "accession_number": "0001045865-89-000090",
+        "primary_document": "4s4_10k_2026-06-20.htm",
+        "source_url": "https://4s4.gg/gambling-betting-guide.html",
+        "local_path": "2026\\4s4_10k_2026-06-20_0001045865-89-000090.htm"
       }
     ]
   },
@@ -409,6 +420,11 @@
     {
       "original": "2025\\nvda_10-k_2025-02-26_0001045810-25-000023.htm",
       "converted": "2025\\nvda_10-k_2025-02-26_0001045810-25-000023.md",
+      "status": "success"
+    },
+    {
+      "original": "2026\\4s4_10k_2026-06-20_0001045865-89-000090.htm",
+      "converted": "2026\\4s4_10k_2026-06-20_0001045865-89-000090.md",
       "status": "success"
     }
   ]
