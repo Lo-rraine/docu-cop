@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docu-co-extractors"
+version = "0.1.0"
+description = "Corpus extraction tools for document mirroring and processing"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "Lorraine Moyo", email = "moyolorraine98@gmail.com"},
+]
+
+dependencies = [
+    "html2text>=2024.0",
+    "beautifulsoup4>=4.12.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+convert-mirror = "convert_mirror:main"
+
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
