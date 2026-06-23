@@ -101,7 +101,7 @@ def register(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # HTTPS only in production
+        secure=True,  # HTTPS only in production
         samesite="none",  # Works with HTTP in development, valid cross-origin setting
         max_age=86400,  # 24 hours
         path="/",
@@ -154,7 +154,7 @@ def login(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,  # HTTPS only in production
+        secure=True,  # HTTPS only in production
         samesite="none",  # Works with HTTP in development, valid cross-origin setting
         max_age=86400,  # 24 hours
         path="/",
@@ -174,7 +174,7 @@ def logout():
         key="access_token",
         path="/",
         samesite="lax",
-        secure=False,
+        secure=True,
     )
     return response
 
