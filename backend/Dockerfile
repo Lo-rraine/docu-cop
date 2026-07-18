@@ -11,17 +11,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install uv
 RUN pip install --no-cache-dir uv
 
-# Copy dependency files from the repository root
-COPY backend/pyproject.toml ./
-COPY backend/uv.lock* ./
+# Copy dependency files
+COPY pyproject.toml ./
+COPY uv.lock* ./
 
 # Install dependencies
 RUN uv sync --frozen --no-dev
 
 # Copy application source
-COPY backend/app ./app
-COPY backend/alembic ./alembic
-COPY backend/alembic.ini ./
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./
 
 # Expose FastAPI port
 EXPOSE 8000
